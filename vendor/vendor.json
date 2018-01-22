@@ -1,0 +1,19 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "qe/mERv6GrYNcp6hfWpsD0FlXFs=",
+			"path": "github.com/apsdehal/go-logger",
+			"revision": "15baca6eadffd2c13e76e01890ca70eb6d4636f9",
+			"revisionTime": "2017-01-28T02:38:58Z"
+		},
+		{
+			"checksumSHA1": "L2HiZOzn/+nBYm50ZHTTLoKDnO0=",
+			"path": "github.com/go-ini/ini",
+			"revision": "32e4c1e6bc4e7d0d8451aa6b75200d19e37a536a",
+			"revisionTime": "2017-11-19T05:34:21Z"
+		}
+	],
+	"rootPath": "kuaidi100_go"
+}
