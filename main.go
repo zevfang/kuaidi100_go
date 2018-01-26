@@ -6,8 +6,10 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/apsdehal/go-logger"
+	"github.com/garyburd/redigo/redis"
 	"github.com/go-ini/ini"
 )
 
@@ -21,7 +23,7 @@ type Config struct {
 	/*	是
 		身份授权key，请 快递查询接口 进行申请（大小写敏感）
 	*/
-	Id string `ini:"appkey"`
+	Id string `ini:"app_key"`
 	/*	是
 		要查询的快递公司代码，不支持中文，对应的公司代码见《API URL 所支持的快递公司及参数说明》和《支持的国际类快递及参数说明》。
 		如果找不到您所需的公司，请发邮件至 kuaidi@kingdee.com 咨询（大小写不敏感）
@@ -64,6 +66,9 @@ var log *logger.Logger
 var cfg = new(Config)
 var coms *[]Com
 
+var cfg_redis *ini.Section
+var redisClient *redis.Pool
+
 func InitLogger() {
 	var (
 		err     error
@@ -100,9 +105,58 @@ func InitKuaiDi100Config() {
 	if err != nil {
 		log.Error("config is error")
 	}
-	err = c.Section("KuaiDi100").MapTo(cfg)
+	err = c.Section("kuaidi100").MapTo(cfg)
 	if err != nil {
 		log.Error("config is node kuaidi100 section error")
+	}
+}
+
+func InitRedisConfig() {
+	c, err := ini.Load("config.ini")
+	if err != nil {
+		log.Error("config is error")
+	}
+	cfg_redis = c.Section("redis")
+}
+
+func InitRedis() {
+	MAX_IDLE, err := cfg_redis.Key("redis_maxidle").Int()
+	if err != nil {
+		log.Error("Type conversion error")
+	}
+	MAX_ACTIVE, err := cfg_redis.Key("redis_maxactive").Int()
+	if err != nil {
+		log.Error("Type conversion error")
+	}
+
+	HOST := cfg_redis.Key("redis_host").String()
+	DB := cfg_redis.Key("redis_db").String()
+	PASS_WORD := cfg_redis.Key("redis_pass_word").String()
+	//建立连接池
+	redisClient = &redis.Pool{
+		MaxIdle:     MAX_IDLE,
+		MaxActive:   MAX_ACTIVE,
+		IdleTimeout: 180 * time.Second,
+		Dial: func() (redis.Conn, error) {
+			c, err := redis.Dial("tcp", HOST)
+			if err != nil {
+				fmt.Println(err)
+				return nil, err
+			}
+			//密码
+			if _, err := c.Do("AUTH", PASS_WORD); err != nil {
+				fmt.Println(err)
+				c.Close()
+				return nil, err
+			}
+			// 选择db
+			if _, err := c.Do("SELECT", DB); err != nil {
+				fmt.Println(err)
+				c.Close()
+				return nil, err
+			}
+			return c, nil
+		},
 	}
 }
 
@@ -110,14 +164,27 @@ func init() {
 	InitLogger()
 	InitKuaiDi()
 	InitKuaiDi100Config()
+	InitRedisConfig()
+	InitRedis()
 }
 
 func main() {
 
-	fmt.Println(cfg)
-	fmt.Println(coms)
-	log.Error("这是个错误")
+	// fmt.Println(cfg)
+	// fmt.Println(coms)
+	// log.Error("这是个错误")
+	//fmt.Println(cfg_redis)
+	c, err := redisClient.Dial()
+	if err != nil {
+		fmt.Println(err)
+	}
 
+	_, err = c.Do("SET", "express:com", "韵达")
+	
+	if err != nil {
+		log.Error("这是个错误")
+	}
+	defer c.Close()
 	//apiurl := fmt.Sprintf("http://api.kuaidi100.com/api?id=%s&com=[]&nu=[]&valicode=[]&show=[0|1|2|3]&muti=[0|1]&order=[desc|asc]"
 	// GetKD100Json(url)
 }
