@@ -1,0 +1,17 @@
+[
+  {
+    "afu_code": "tiantiankuaidi",
+    "kd100_code": "tiantian",
+    "name": "天天快递"
+  },
+  {
+    "afu_code": "jdkuaidi",
+    "kd100_code": "jd",
+    "name": "京东快递"
+  },
+  {
+    "afu_code": "yunda",
+    "kd100_code": "yd",
+    "name": "韵达快递"
+  }
+]
