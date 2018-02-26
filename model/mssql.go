@@ -13,26 +13,27 @@ var DB *sqlx.DB
 
 func InitMsSql() error {
 
-	connString := fmt.Sprintf("server=%s;database=%s;user id=%s;password=%s;port=%d",
+	connString := fmt.Sprintf("server=%s;database=%s;user id=%s;password=%s;port=%d;",
 		system.GetConfiguration().MsSqlServer,
 		system.GetConfiguration().MsSqlDataBase,
 		system.GetConfiguration().MsSqlUid,
 		system.GetConfiguration().MsSqlPwd,
 		system.GetConfiguration().MsSqlPort)
-	fmt.Println(connString)
 	conn, err := sqlx.Connect("mssql", connString)
+	fmt.Println(connString)
 	if err != nil {
 		return errors.New(fmt.Sprintf("Open connection failed:", err.Error()))
 	}
 	DB = conn
-	fmt.Println(DB)
 	return err
 }
 
 
 func (tradeOrder *TradeOrder) GetTopOrder() ([]TradeOrder, error) {
-
-	rows, err := DB.Queryx("SELECT top 10 shelp,logistics_comp,logistics_order FROM trade_order;")
+	//start_date:="where create_date >= '2018-01-01 00:00:00'  "
+	//rows, err := DB.Queryx("SELECT * FROM trade_order WHERE site_order_id IN ('412151205240974365','412329093254557643');")
+	//rows, err := DB.Queryx("SELECT top 5 shelp,logistics_comp,logistics_order FROM trade_order; ")
+	rows, err := DB.Queryx("SELECT top 5 shelp,logistics_comp,logistics_order FROM trade_order where shelp='DISTRIBUTOR_13174102'; ")
 	if err != nil {
 		return nil, err
 	}
@@ -43,6 +44,7 @@ func (tradeOrder *TradeOrder) GetTopOrder() ([]TradeOrder, error) {
 		err := rows.StructScan(&row)
 		if err != nil {
 			fmt.Println("row err")
+			continue
 		}
 		result = append(result, row)
 	}
