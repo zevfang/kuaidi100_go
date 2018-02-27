@@ -90,6 +90,31 @@ type PollPostData struct {
 */
 //推送数据结构
 type CallPostData struct {
+	Status     string `json:"status"`
+	BillStatus string `json:"billstatus"`
+	Message    string `json:"message"`
+	AutoCheck  string `json:"autoCheck"`
+	ComOld     string `json:"comOld"`
+	ComNew     string `json:"comNew"`
+	LastResult struct {
+		Message   string                   `json:"message"`
+		State     string                   `json:"state"`
+		Status    string                   `json:"status"`
+		Condition string                   `json:"condition"`
+		Ischeck   string                   `json:"ischeck"`
+		Com       string                   `json:"com"`
+		Nu        string                   `json:"nu"`
+		Data      []CallPostLastResultData `json:"data"`
+	} `json:"lastResult"`
+}
+
+type CallPostLastResultData struct {
+	Context  string `json:"context"`
+	Time     string `json:"time"`
+	Ftime    string `json:"ftime"`
+	Status   string `json:"status"`
+	AreaCode string `json:"areaCode"`
+	AreaName string `json:"areaName"`
 }
 
 /*
@@ -101,7 +126,12 @@ type CallPostData struct {
 */
 //返回结构
 type ResultData struct {
-	Result     bool
-	ReturnCode int
-	Message    string
+	Result     bool   `json:"result" db:"result"`
+	ReturnCode string `json:"returnCode" db:"returnCode"`
+	Message    string `json:"message" db:"message"`
+}
+
+type KdSubscribeLog struct {
+	LogisticsOrder string `db:"logistics_order"`
+	ResultData ResultData
 }
