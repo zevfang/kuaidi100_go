@@ -7,7 +7,7 @@ import (
 	"kuaidi100_go/system"
 )
 
-var Mylog *logger.Logger
+var Log *logger.Logger
 
 func NewLogger() {
 
@@ -20,7 +20,7 @@ func NewLogger() {
 	if err != nil {
 		panic("open log file error.")
 	}
-	Mylog, err = logger.New("log", 1, logFile)
+	Log, err = logger.New("log", 1, logFile)
 	if err != nil {
 		panic("log init error.")
 	}
