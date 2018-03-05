@@ -23,6 +23,8 @@ type Configuration struct {
 	ServiceName        string `ini:"service_name"`         //显示名称
 	ServiceDisplayName string `ini:"service_display_name"` //服务名称
 	ServiceDescription string `ini:"service_description"`  //备注信息
+	PollState          int    `json:"poll_state"`          //是否开启订阅
+	PollMinutes        int    `json:"poll_minutes"`        //订阅间隔（秒）
 }
 
 var configuration Configuration
