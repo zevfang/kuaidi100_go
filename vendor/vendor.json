@@ -3,6 +3,12 @@
 	"ignore": "test",
 	"package": [
 		{
+			"checksumSHA1": "w0ujYn4YaYhZEgdD6XH6QjyxwXo=",
+			"path": "github.com/ahmetb/go-linq",
+			"revision": "67424dce7b47e42b7f2373557878fd6e3f2d8c44",
+			"revisionTime": "2017-02-26T20:32:25Z"
+		},
+		{
 			"checksumSHA1": "qe/mERv6GrYNcp6hfWpsD0FlXFs=",
 			"path": "github.com/apsdehal/go-logger",
 			"revision": "15baca6eadffd2c13e76e01890ca70eb6d4636f9",
