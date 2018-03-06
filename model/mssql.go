@@ -29,12 +29,18 @@ func InitMsSql() error {
 }
 
 func GetTopOrder() ([]TradeOrder, error) {
-	//start_date:="where create_date >= '2018-01-01 00:00:00'  "
-	//rows, err := DB.Queryx("SELECT * FROM trade_order WHERE site_order_id IN ('412151205240974365','412329093254557643');")
-	rows, err := DB.Queryx("SELECT top 10 shelp,logistics_comp,logistics_order FROM trade_order ; ")
-	//rows, err := DB.Queryx("SELECT top 5 shelp,logistics_comp,logistics_order FROM trade_order where shelp='DISTRIBUTOR_13174102'; ")
 
-	//rows, err := DB.Queryx("SELECT top 1 shelp,logistics_comp,logistics_order FROM trade_order(nolock) where logistics_order=?1", "3948650310895")
+	top_count := system.GetConfiguration().OncePollCount
+	if top_count == 0 {
+		top_count = 100
+	}
+
+	start_data := system.GetConfiguration().StartDate
+	if start_data == "" {
+		start_data = "2018-01-01 00:00:00"
+	}
+	sql := fmt.Sprintf("select top %d shelp,logistics_comp,logistics_order FROM trade_order(nolock)  where is_subscribe = 0 and create_date >= ?1;", top_count)
+	rows, err := DB.Queryx(sql, top_count)
 	if err != nil {
 		return nil, err
 	}
@@ -72,6 +78,14 @@ func GetKdOrderOne(nu string) (KdOrder, error) {
 	const sql = "SELECT * FROM  kd_order(NOLOCK) WHERE nu=?1"
 	err := DB.Get(&kdOrder, sql, nu)
 	return kdOrder, err
+}
+
+// 获取阿芙物流编码
+func GetTradeOrderShelp(nu string) (string, error) {
+	var shelp string
+	const sql = ` SELECT top 1 shelp FROM trade_order(NOLOCK) WHERE logistics_order=?1`
+	err := DB.QueryRow(sql, nu).Scan(&shelp)
+	return shelp, err
 }
 
 // 新增推送信息
