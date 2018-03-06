@@ -17,7 +17,7 @@ type Configuration struct {
 	RedisPassWord      string `ini:"redis_pass_word"`
 	MsSqlServer        string `ini:"mssql_server"`
 	MsSqlDataBase      string `ini:"mssql_db"`
-	MsSqlPort          int    `ini:"mssql_port"`
+	MsSqlPort          int `ini:"mssql_port"`
 	MsSqlUid           string `ini:"mssql_uid"`
 	MsSqlPwd           string `ini:"mssql_pwd"`
 	ServiceName        string `ini:"service_name"`         //显示名称

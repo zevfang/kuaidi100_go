@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 // 计算字符串的md5值
@@ -26,4 +27,14 @@ func GetCurrentDirectory() string {
 		panic(err)
 	}
 	return strings.Replace(dir, "\\", "/", -1)
+}
+
+func GetNow() string {
+	return time.Now().Format("2006-01-02 15:04:05")
+}
+
+func TimeFormat(s string) time.Time {
+	local, _ := time.LoadLocation("Local")
+	t, _ := time.ParseInLocation("2006-01-02 15:04:05", s, local)
+	return t
 }
