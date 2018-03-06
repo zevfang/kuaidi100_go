@@ -41,3 +41,13 @@ func GetComByCodeName(afu_code, name string) string {
 	return kd100_code
 }
 
+func GetAfuCodeByCodeName(kd_code, name string) string {
+	var afu_code string
+	for _, v := range *coms {
+		if v.AfuCode == kd_code && v.Name == name {
+			afu_code = v.AfuCode
+			break
+		}
+	}
+	return afu_code
+}
