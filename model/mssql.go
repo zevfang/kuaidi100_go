@@ -37,7 +37,7 @@ func GetTopOrder() ([]TradeOrder, error) {
 
 	start_data := system.GetConfiguration().StartDate
 	if start_data == "" {
-		start_data = "2018-01-01 00:00:00"
+		start_data = "2018-03-01 00:00:00"
 	}
 	sql := fmt.Sprintf("select top %d shelp,logistics_comp,logistics_order FROM trade_order(nolock)  where is_subscribe = 0 and create_date >= ?1;", top_count)
 	rows, err := DB.Queryx(sql, top_count)
