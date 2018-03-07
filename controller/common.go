@@ -10,8 +10,12 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/url"
 	"sync"
+	"github.com/ahmetb/go-linq"
+	"kuaidi100_go/log"
+	"strings"
 )
 
+/***************************************推送处理******************************************/
 /*
 	接受推送
 
@@ -23,11 +27,13 @@ import (
 	400 内容解析错误或非法数据
 
 */
+
 func CallBack(c *gin.Context) {
 	param := c.PostForm("param")
 	sign := c.PostForm("sign")
+	log.Log.Info(sign)
 	//验证
-	if param != "" && sign != "" {
+	if param == "" || sign == "" {
 		c.JSON(http.StatusOK, gin.H{
 			"result":     false,
 			"returnCode": "100",
@@ -35,9 +41,10 @@ func CallBack(c *gin.Context) {
 		})
 		return
 	}
+
 	//验签
 	signStr := system.Md5(param + system.GetConfiguration().Salt)
-	if sign != signStr {
+	if strings.ToUpper(sign) != strings.ToUpper(signStr) {
 		c.JSON(http.StatusOK, gin.H{
 			"result":     false,
 			"returnCode": "300",
@@ -47,8 +54,8 @@ func CallBack(c *gin.Context) {
 	}
 
 	//解析数据
-	var call model.CallPostData
-	err := json.Unmarshal([]byte(param), &call)
+	var callBackData model.CallPostData
+	err := json.Unmarshal([]byte(param), &callBackData)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"result":     false,
@@ -58,13 +65,138 @@ func CallBack(c *gin.Context) {
 		return
 	}
 
-	//组装数据准备入库
+	kdOrder := model.KdOrder{
+		KdStatus:     callBackData.Status,
+		KdStatusName: converToKdStatusName(callBackData.Status),
+		KdMessage:    callBackData.Message,
+		State:        callBackData.LastResult.State,
+		StateName:    convertToStateName(callBackData.LastResult.State),
+		Com:          callBackData.LastResult.Com,
+		Shelp:        "",
+		Nu:           callBackData.LastResult.Nu,
+		Data:         param,
+		ZtName:       "在途",
+		ZtTime:       getStatusMinTime(callBackData.LastResult.Data, "在途"),
+		LjName:       "揽件",
+		LjTime:       getStatusMinTime(callBackData.LastResult.Data, "揽件"),
+		YnName:       "疑难",
+		YnTime:       getStatusMinTime(callBackData.LastResult.Data, "疑难"),
+		QsName:       "签收",
+		QsTime:       getStatusMinTime(callBackData.LastResult.Data, "签收"),
+		TqName:       "退签",
+		TqTime:       getStatusMinTime(callBackData.LastResult.Data, "退签"),
+		PjName:       "派件",
+		PjTime:       getStatusMinTime(callBackData.LastResult.Data, "派件"),
+		ThName:       "退回",
+		ThTime:       getStatusMinTime(callBackData.LastResult.Data, "退回"),
+		Created:      "",
+		Updated:      "",
+	}
 
+	//查看是否存在(orderErr：如果结果集是空的，返回一个错误)
+	order, orderErr := model.GetKdOrderOne(callBackData.LastResult.Nu)
+
+	var errs error
+	//新增数据
+	if order.Nu == "" && orderErr != nil {
+		//获取阿芙快递商编码
+		shelp, err := model.GetTradeOrderShelp(callBackData.LastResult.Nu)
+		if err != nil {
+			log.Log.Info(fmt.Sprintf("快递商编码查询异常:[%s]%s", callBackData.LastResult.Nu, err))
+		}
+		//新增
+		kdOrder.Shelp = shelp
+		kdOrder.Created = system.GetNow()
+		kdOrder.Updated = system.GetNow()
+		errs = model.InsertKdOrder(kdOrder)
+	} else {
+		//修改
+		kdOrder.Shelp = order.Shelp
+		kdOrder.Created = order.Created
+		kdOrder.Updated = system.GetNow()
+		errs = model.UpdateKdOrder(kdOrder)
+	}
+	if errs != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"result":     false,
+			"returnCode": "500",
+			"message":    "服务器错误,数据未被存储" + errs.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"result":     true,
+		"returnCode": "200",
+		"message":    "提交成功",
+	})
 }
 
-func ConverToStatus(callData model.CallPostData) error {
-	return nil
+func getStatusMinTime(r []model.CallPostLastResultData, status string) string {
+	lastTime := linq.From(r).WhereT(func(c model.CallPostLastResultData) bool {
+		return c.Status == status
+	}).SelectT(func(c model.CallPostLastResultData) string {
+		return c.Ftime
+	}).Min()
+	if lastTime != nil {
+		return fmt.Sprintf("%s", lastTime)
+	}
+	return ""
 }
+
+func converToKdStatusName(kdStatus string) string {
+	var kdStatusName string
+	switch kdStatus {
+	case "polling":
+		kdStatusName = "监控中"
+		break
+	case "shutdown":
+		kdStatusName = "结束"
+		break
+	case "abort":
+		kdStatusName = "中止"
+		break
+	case "updateall":
+		kdStatusName = "重新推送"
+		break
+	default:
+		kdStatusName = "传入状态错误"
+		break
+	}
+	return kdStatusName
+}
+
+func convertToStateName(state string) string {
+	var statusName string
+	switch state {
+	case "0":
+		statusName = "在途"
+		break
+	case "1":
+		statusName = "揽件"
+		break
+	case "2":
+		statusName = "疑难"
+		break
+	case "3":
+		statusName = "签收"
+		break
+	case "4":
+		statusName = "退签"
+		break
+	case "5":
+		statusName = "派件"
+		break
+	case "6":
+		statusName = "退回"
+		break
+	default:
+		statusName = "传入状态错误"
+		break
+	}
+	return statusName
+}
+
+/***************************************************订阅处理*********************************************/
 
 /*
 	订阅数据
@@ -76,41 +208,55 @@ func ConverToStatus(callData model.CallPostData) error {
 	600: 您不是合法的订阅者（即授权Key出错）
 	601: POLL:KEY已过期
 	500: 服务器错误（即快递100的服务器出理间隙或临时性异常，有时如果因为不按规范提交请求，比如快递公司参数写错等，也会报此错误）
-	501:重复订阅（请格外注意，501表示这张单已经订阅成功且目前还在跟踪过程中（即单号的status=polling），快递100的服务器会因此忽略您最新的此次订阅请求，从而返回501。一个运单号只要提交一次订阅即可，若要提交多次订阅，请在收到单号的status=abort或shutdown后隔半小时再提交订阅
+	501: 重复订阅（请格外注意，501表示这张单已经订阅成功且目前还在跟踪过程中（即单号的status=polling），快递100的服务器会因此忽略您最新的此次订阅请求，从而返回501。一个运单号只要提交一次订阅即可，若要提交多次订阅，请在收到单号的status=abort或shutdown后隔半小时再提交订阅
 */
 
-func PollOrder(c *gin.Context) {
+func PollOrder() {
 
 	// 获取待订阅数据
-	t := new(model.TradeOrder)
-	data, err := t.GetTopOrder()
+	data, err := model.GetTopOrder()
 	if err != nil {
 		fmt.Println(err)
 	}
+	if len(data) == 0 {
+		return
+	}
 	pollData := converToCom(data)
-	//var results []model.ResultData
-	//for _,v:=range  pollData{
-	//
-	//	result, err := PostData(system.GetConfiguration().SubscribeUrl, v)
-	//	if err != nil {
-	//		fmt.Println(err)
-	//	}
-	//	results = append(results,result)
-	//}
-	//for _, v := range results {
-	//	t.TranOrderAndResult()
-	//}
+	fmt.Printf("订阅开始:%d", len(pollData))
+	// 循环订阅数据
+	var resultsLog []model.KdSubscribeLog
+	for _, v := range pollData {
 
-	//返回
-	c.JSON(http.StatusOK, pollData)
+		resultData, err := postData(system.GetConfiguration().SubscribeUrl, v)
+		if err != nil {
+			log.Log.Error(fmt.Sprintf("订阅发生错误：%s", err))
+		}
+
+		sLog := model.KdSubscribeLog{
+			LogisticsOrder: v.Param.Number,
+			Result:         resultData.Result,
+			ReturnCode:     resultData.ReturnCode,
+			Message:        resultData.Message,
+		}
+
+		resultsLog = append(resultsLog, sLog)
+	}
+
+	//返回值处理
+	for _, v := range resultsLog {
+		err := model.TranOrderAndResult(v)
+		if err != nil {
+			log.Log.Error(fmt.Sprintf("对账数据插入失败:%s", err))
+		}
+	}
 }
 
 // 并发访问（暂时不启用）
-func AsyncPollOrder(c *gin.Context) {
+func asyncPollOrder(c *gin.Context) {
 
 	// 获取待订阅数据
-	t := new(model.TradeOrder)
-	data, err := t.GetTopOrder()
+
+	data, err := model.GetTopOrder()
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -145,7 +291,7 @@ func AsyncPollOrder(c *gin.Context) {
 	wg.Wait()
 
 	//for _, v := range results {
-	//	t.TranOrderAndResult()
+	//	model.TranOrderAndResult()
 	//}
 
 	//返回
