@@ -31,7 +31,6 @@ import (
 func CallBack(c *gin.Context) {
 	param := c.PostForm("param")
 	sign := c.PostForm("sign")
-	log.Log.Info(sign)
 	//验证
 	if param == "" || sign == "" {
 		c.JSON(http.StatusOK, gin.H{
@@ -212,7 +211,6 @@ func convertToStateName(state string) string {
 */
 
 func PollOrder() {
-
 	// 获取待订阅数据
 	data, err := model.GetTopOrder()
 	if err != nil {
@@ -224,7 +222,6 @@ func PollOrder() {
 	pollData := converToCom(data)
 	fmt.Printf("订阅开始:%d", len(pollData))
 	// 循环订阅数据
-	var resultsLog []model.KdSubscribeLog
 	for _, v := range pollData {
 
 		resultData, err := postData(system.GetConfiguration().SubscribeUrl, v)
@@ -239,17 +236,15 @@ func PollOrder() {
 			Message:        resultData.Message,
 		}
 
-		resultsLog = append(resultsLog, sLog)
-	}
-
-	//返回值处理
-	for _, v := range resultsLog {
-		err := model.TranOrderAndResult(v)
+		//返回值处理
+		err = model.TranOrderAndResult(sLog)
 		if err != nil {
 			log.Log.Error(fmt.Sprintf("对账数据插入失败:%s", err))
 		}
 	}
 }
+
+
 
 // 并发访问（暂时不启用）
 func asyncPollOrder(c *gin.Context) {
