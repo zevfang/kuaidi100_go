@@ -1,62 +1,138 @@
 package main
 
 import (
+	"os"
 	"fmt"
-	"github.com/claudiu/gocron"
+	"github.com/kardianos/service"
 	"github.com/gin-gonic/gin"
-	"io/ioutil"
-	"kuaidi100_go/model"
-	"kuaidi100_go/system"
+	"kuaidi100_go/log"
+	"kuaidi100_go/controller"
 	"net/http"
+	"kuaidi100_go/system"
+	"github.com/claudiu/gocron"
+	"kuaidi100_go/model"
 )
 
-func main() {
+type daemon struct{}
+
+func (p *daemon) Start(s service.Service) error {
+	go p.Run()
+	return nil
+}
+
+func (p *daemon) Stop(s service.Service) error {
+	if service.Interactive() {
+		os.Exit(0)
+	}
+	return nil
+}
+
+func (p *daemon) Run() {
+
+	//初始化log
+	log.NewLogger()
+	log.Log.Info("app init \n\r")
+
+	configFilePath := fmt.Sprintf("%s%s", system.GetCurrentDirectory(), "/conf/config.ini")
+	convertFilePath := fmt.Sprintf("%s%s", system.GetCurrentDirectory(), "/conf/convert.json")
 
 	// 加载配置文件
-	if err := system.LoadConfiguration("conf/config.ini"); err != nil {
+	if err := system.LoadConfiguration(configFilePath); err != nil {
+		log.Log.Error(err.Error())
 		fmt.Println(err)
 		return
 	}
 
 	// 加载快递编码对照表
-	if err := system.LoadComs("conf/convert.json"); err != nil {
+	if err := system.LoadComs(convertFilePath); err != nil {
+		log.Log.Error(err.Error())
 		fmt.Println(err)
 		return
 	}
 
+	// 注册DB
+	if err := model.InitModel(); err != nil {
+		log.Log.Error(err.Error())
+		fmt.Println(err)
+		return
+	}
+
+	gin.SetMode(system.GetConfiguration().Env)
 	router := gin.Default()
 	router.Use(gin.ErrorLogger())
-	router.GET("/getcom", func(c *gin.Context) {
-		c.JSON(200, system.GetComArray())
+
+	router.GET("/", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"message": "快递100服务",
+		})
 	})
-	router.GET("/getdata", func(c *gin.Context) {
-		t := new(model.TradeOrder)
-		res, err := t.GetTopOrder()
-		if err != nil {
-			fmt.Println(err)
-		}
-		c.JSON(http.StatusOK,res)
-	})
-	gocron.Every(1).Day().Do(func() {
-		fmt.Println("hello")
-	})
-	gocron.Every(1).Hour().Do(func() {
-		fmt.Println("nihao")
-	})
-	gocron.Start()
+
+	//接受推送
+	router.POST("/callback", controller.CallBack)
+	fmt.Println("接受推送服务已开启")
+	//定时订阅
+	if system.GetConfiguration().PollState == 1 {
+		//获取订阅间隔
+		m := uint64(system.GetConfiguration().PollMinutes)
+
+		gocron.Every(m).Seconds().Do(controller.PollOrder)
+		gocron.Start()
+		fmt.Println("注册订阅服务已开启")
+	}
 
 	router.Run(system.GetConfiguration().Addr)
-
 }
 
-func GetKD100Json(url string) {
-	res, err := http.Get("http://www.baidu.com")
-	if err != nil {
-		//log.Error("http err is get baidu")
+func main() {
+
+	svcConfig := &service.Config{
+		Name:        "快递信息订阅推送",
+		DisplayName: "kuidi100_go",
+		Description: "快递100获取物流信息的订阅/推送服务",
 	}
-	b, err := ioutil.ReadAll(res.Body)
+
+	prg := &daemon{}
+	s, err := service.New(prg, svcConfig)
 	if err != nil {
-		fmt.Println("err")
+		fmt.Println("Create service error => ", err)
 	}
-	fmt.Println(string(b))
+	if len(os.Args) > 1 {
+
+		if os.Args[1] == "install" {
+			err := s.Install()
+			if err != nil {
+				fmt.Println("Install service error=> ", err)
+				os.Exit(1)
+			}
+			fmt.Println("Successful install services")
+			return
+		}
+
+		if os.Args[1] == "remove" {
+			err := s.Uninstall()
+			if err != nil {
+				fmt.Println("Remove service error=> ", err)
+				os.Exit(1)
+			}
+			fmt.Println("Successful remove services")
+			return
+		}
+
+		if os.Args[1] == "restart" {
+			err := s.Restart()
+			if err != nil {
+				fmt.Println("Restart service error=> ", err)
+				os.Exit(1)
+			}
+			fmt.Println("Successful restart services")
+			return
+		}
+	}
+
+	err = s.Run()
+	fmt.Println(err)
+	if err != nil {
+		fmt.Println(err)
+	}
+
 }

@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+
 type Redis struct {
 }
 
@@ -47,10 +48,10 @@ func InitRedis() {
 	}
 }
 
-//func (r *Redis) SetExpress(s string) error {
-//	conn,err:=RedisClient.Dial()
-//	if err!=nil {
-//		return  err
-//	}
-//	conn.Flush().Error()
-//}
+func (r *Redis) SetExpress(s string) error {
+	conn,err:=RedisClient.Dial()
+	if err!=nil {
+		return  err
+	}
+	conn.Flush().Error()
+}

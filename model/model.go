@@ -3,7 +3,7 @@ package model
 func InitModel() error {
 	var err error
 	//初始化Redis
-	InitRedis()
+	//InitRedis()
 
 	//初始SqlServer
 	err = InitMsSql()

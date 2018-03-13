@@ -1,17 +1,6 @@
 [
-  {
-    "afu_code": "tiantiankuaidi",
-    "kd100_code": "tiantian",
-    "name": "天天快递"
-  },
-  {
-    "afu_code": "jdkuaidi",
-    "kd100_code": "jd",
-    "name": "京东快递"
-  },
-  {
-    "afu_code": "yunda",
-    "kd100_code": "yd",
-    "name": "韵达快递"
-  }
+  {"afu_code": "EMS","name": "EMS-热敏","kd100_code": "ems"},
+  {"afu_code": "JD","name": "京东快递","kd100_code": "jd"},
+  {"afu_code": "KYE","name": "跨越速运","kd100_code": "kuayue"},
+  {"afu_code": "SF","name": "顺丰速运-电子","kd100_code": "shunfeng"}
 ]

@@ -14,7 +14,7 @@ type Configuration struct {
 	RedisMaxIdle       int    `ini:"redis_max_idle"`   //最大的空闲连接数
 	RedisMaxActive     int    `ini:"redis_max_active"` //最大的激活连接数(同时最多有N个连接)
 	RedisHost          string `ini:"redis_host"`
-	RedisDb            string `ini:"redis_db"`
+	RedisDb            int `ini:"redis_db"`
 	RedisPassWord      string `ini:"redis_pass_word"`
 	MsSqlServer        string `ini:"mssql_server"`
 	MsSqlDataBase      string `ini:"mssql_db"`
