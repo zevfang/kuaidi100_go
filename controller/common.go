@@ -28,6 +28,32 @@ import (
 
 */
 
+//func SetLjTime() {
+//	order, err := model.GetTop()
+//	if err != nil {
+//		fmt.Println(err)
+//	}
+//	for i := 0; i < len(order); i++ {
+//
+//		d := order[i].Data
+//		var callBackData model.CallPostData
+//		err := json.Unmarshal([]byte(d), &callBackData)
+//		if err != nil {
+//			fmt.Println("转换错误")
+//			continue
+//		}
+//
+//		order[i].LjTime = getStatusMinTime(callBackData.LastResult.Data, "揽件")
+//		order[i].ZtTime = getStatusMinTime(callBackData.LastResult.Data, "在途")
+//
+//		model.UpdTop(order[i])
+//		fmt.Printf("nu:%s , index:%d \r\n ", order[i].Nu, i)
+//	}
+//	if len(order) == 0 {
+//		fmt.Println("完成，请查询检查一下")
+//	}
+//}
+
 func CallBack(c *gin.Context) {
 	param := c.PostForm("param")
 	sign := c.PostForm("sign")
@@ -130,14 +156,52 @@ func CallBack(c *gin.Context) {
 	})
 }
 
+// 获取流转节点时间
 func getStatusMinTime(r []model.CallPostLastResultData, status string) string {
-	lastTime := linq.From(r).WhereT(func(c model.CallPostLastResultData) bool {
-		return c.Status == status
-	}).SelectT(func(c model.CallPostLastResultData) string {
-		return c.Ftime
-	}).Min()
-	if lastTime != nil {
-		return fmt.Sprintf("%s", lastTime)
+	data_cout := len(r)
+	if data_cout > 0 {
+		var minTime string = ""
+		var isfalg bool
+		lastData := linq.From(r).WhereT(func(c model.CallPostLastResultData) bool {
+			return c.Status == status
+		}).Results()
+
+		//查询关键字是否存在
+		if len(lastData) > 0 {
+			isfalg = true
+		}
+
+		//如果存在关键字
+		if isfalg {
+			//默认列表首条数据
+			t := linq.From(lastData).SelectT(func(c model.CallPostLastResultData) string {
+				return c.Ftime
+			}).Min()
+			minTime = fmt.Sprintf("%s", t)
+
+			//如果在途数量大于1，则查询在途中的第二条，否则选择
+
+			if status == "在途" && len(lastData) > 1 {
+				z := lastData[len(lastData)-2]
+				minTime = z.(model.CallPostLastResultData).Ftime
+			}
+
+		} else {
+			//从在途里面取首条
+			if status == "揽件" {
+				d := linq.From(r).WhereT(func(c model.CallPostLastResultData) bool {
+					return c.Status == "在途"
+				}).SelectT(func(c model.CallPostLastResultData) string {
+					return c.Ftime
+				}).Min()
+				minTime = fmt.Sprintf("%s", d)
+			}
+
+			if status == "在途" && len(lastData) == 0 {
+				minTime = r[len(r)-1].Ftime
+			}
+		}
+		return minTime
 	}
 	return ""
 }
@@ -243,8 +307,6 @@ func PollOrder() {
 		}
 	}
 }
-
-
 
 // 并发访问（暂时不启用）
 func asyncPollOrder(c *gin.Context) {
