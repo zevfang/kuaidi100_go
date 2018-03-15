@@ -136,3 +136,36 @@ func main() {
 	}
 
 }
+//
+//func BatchSetLjTime()  {
+//	//初始化log
+//	log.NewLogger()
+//	log.Log.Info("app init \n\r")
+//
+//	configFilePath := fmt.Sprintf("%s%s", system.GetCurrentDirectory(), "/conf/config.ini")
+//	convertFilePath := fmt.Sprintf("%s%s", system.GetCurrentDirectory(), "/conf/convert.json")
+//
+//	// 加载配置文件
+//	if err := system.LoadConfiguration(configFilePath); err != nil {
+//		log.Log.Error(err.Error())
+//		fmt.Println(err)
+//		return
+//	}
+//
+//	// 加载快递编码对照表
+//	if err := system.LoadComs(convertFilePath); err != nil {
+//		log.Log.Error(err.Error())
+//		fmt.Println(err)
+//		return
+//	}
+//
+//	// 注册DB
+//	if err := model.InitModel(); err != nil {
+//		log.Log.Error(err.Error())
+//		fmt.Println(err)
+//		return
+//	}
+//
+//	controller.SetLjTime()
+//	fmt.Println("over!!!")
+//}

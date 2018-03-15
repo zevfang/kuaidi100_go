@@ -1,5 +1,3 @@
 ﻿[37m#1 2018-03-06 18:09:31 main.go:36 ▶ INF app init[0m
 
 [37m#1 2018-03-06 18:09:58 main.go:36 ▶ INF app init[0m
-
-test
