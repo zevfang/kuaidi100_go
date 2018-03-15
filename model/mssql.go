@@ -28,6 +28,30 @@ func InitMsSql() error {
 	return err
 }
 
+//func GetTop() ([]KdOrder, error) {
+//	rows, err := DB.Queryx("SELECT TOP 30000 * FROM [dbo].[kd_order](NOLOCK) WHERE [lj_time] ='' ")
+//	if err != nil {
+//		return nil, err
+//	}
+//	defer rows.Close()
+//
+//	var result []KdOrder
+//	for rows.Next() {
+//		var row KdOrder
+//		err := rows.StructScan(&row)
+//		if err != nil {
+//			fmt.Println("row err")
+//			continue
+//		}
+//		result = append(result, row)
+//	}
+//	return result, err
+//}
+//
+//func UpdTop(order KdOrder)  {
+//	DB.MustExec("UPDATE [dbo].[kd_order] SET zt_time=?1,lj_time=?2 WHERE nu=?3;", order.ZtTime,order.LjTime, order.Nu)
+//}
+
 func GetTopOrder() ([]TradeOrder, error) {
 
 	top_count := system.GetConfiguration().OncePollCount

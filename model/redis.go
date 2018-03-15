@@ -54,4 +54,5 @@ func (r *Redis) SetExpress(s string) error {
 		return  err
 	}
 	conn.Flush().Error()
+	return nil
 }
